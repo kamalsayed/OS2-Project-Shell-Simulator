@@ -74,15 +74,20 @@ int formatCommand(char inputBuffer[], char *args[],int *flag,char *args_pipe[],i
     for (i=0;i<length;i++)
     {
         switch (inputBuffer[i])
-        { // ls -li | ls -la
+        { // ls &
             case ' ':
             case '\t' :               // to seperate arguments
                 if(start != -1)
                 {
                     if(!flagg){ //no pipe
                     if(inputBuffer[i-1]!='|'){
+                    if(inputBuffer[i-1]!='&'){
                     args[ct] = &inputBuffer[start];
                     ct++;
+                    }
+                    else{
+                    *flag=1;
+                    }
                     }
                     else{
                     *flag_pipe=1;
@@ -102,15 +107,18 @@ int formatCommand(char inputBuffer[], char *args[],int *flag,char *args_pipe[],i
                 start = -1;
                 break;
             case '\n':
-            if(!flagg){
+            if(!flagg){//no pipeline
+
                 if (start != -1)
-                {
+                {// ls &\n
                     args[ct] = &inputBuffer[start];
                     ct++;
-                }
+                    }
+
                 inputBuffer[i] = '\0';
                 args[ct] = NULL; // no more args
                 break;
+
                 }
             else{
                 if(start != -1){
@@ -121,7 +129,7 @@ int formatCommand(char inputBuffer[], char *args[],int *flag,char *args_pipe[],i
                 args_pipe[p_ct] = NULL; // no more args
                 break;
                 }
-            default :
+            default ://ls &
                 if (start == -1)
                     start = i;
                 if (inputBuffer[i] == '&')
@@ -132,7 +140,7 @@ int formatCommand(char inputBuffer[], char *args[],int *flag,char *args_pipe[],i
         }
     }
 
-
+if(!flagg){
 if(strcmp(args[0],"history")==0)
     {
                if(count>0)
@@ -180,8 +188,23 @@ if(strcmp(args[0],"history")==0)
 
 		}
 	}
+	}
 	else if(flagg){
-        if (args_pipe[0][0]-'!' ==0)
+	if(strcmp(args_pipe[0],"history")==0)
+    {
+               if(count>0)
+		{
+
+                displayHistory();
+		}
+		else
+		{
+		printf("\nNo Commands in the history\n");
+		}
+		return -1;
+    }
+
+  else if (args_pipe[0][0]-'!' ==0)
         {	int x = args_pipe[0][1]- '0'; //48 1
 		int z = args_pipe[0][2]- '0';
 
@@ -217,7 +240,6 @@ if(strcmp(args[0],"history")==0)
 	else if (args[0][0]-'!' ==0)
 	{	int x = args[0][1]- '0'; //48 1
 		int z = args[0][2]- '0';
-
 		if(x>count) //second letter check
 		{
 		printf("\nNo Such Command in the history\n");
@@ -232,10 +254,12 @@ if(strcmp(args[0],"history")==0)
 		{
 
 			if(x==-15)//Checking for '!!',ascii value of '!' is 33.
-			{	 strcpy(inputBuffer,history[0]);  // this will be your 10 th(last) command
+			{
+				 strcpy(inputBuffer,history[0]);  // this will be your 10 th(last) command
 			}
 			else if(x==0) //Checking for '!0'
-			{	 printf("Enter proper command");
+			{
+				 printf("Enter proper command");
 				strcpy(inputBuffer,"Wrong command");
 			}
 
@@ -254,7 +278,8 @@ if(strcmp(args[0],"history")==0)
     strcpy(history[0],inputBuffer); //Updating the history array with input buffer
     count++;
 	if(count>10)
-	{ count=10;
+	{
+	 count=10;
 	}
 }
 
@@ -276,6 +301,7 @@ int main(void)
         fflush(stdout);
         if(-1!=formatCommand(inputBuffer,args,&flag,args_pipe,&pp_flag)) // get next command
 	{
+
         if(!pp_flag){
 		pid = fork();
 
@@ -288,23 +314,26 @@ int main(void)
 
        		 else if (pid == 0)//if pid ==0
         	{
-
+                if(args[0][0]!='c' && args[0][1]!='d'){
            	 	//command not executed
             		if (execvp(args[0], args) == -1)
-           	 	{
+                        printf("Error executing command\n");
 
-                		printf("Error executing command\n");
-            		}
+       		 }else{
+       		 chdir(args[1]);
+
        		 }
 
-       		 // if flag == 0, the parent will wait,
-        	// otherwise returns to the formatCommand() function.
+
+       		 }
+
         	else
         	{
             		i++;
            	 	if (flag == 0)
            		 {
                 		i++;
+                		//waitpid(pid,NULL,0);}
                 		wait(NULL);
            		 }
         	}
@@ -357,10 +386,8 @@ int main(void)
         }
     }
 
-
-
-
-            }
-        }
-     }
 }
+}
+}
+}
+
